@@ -2,6 +2,8 @@ import pygame
 import math
 import random
 import copy
+import time
+
 
 width, height = 1600, 1600
 
@@ -10,11 +12,16 @@ window = pygame.display.set_mode((width, height))
 font = pygame.font.SysFont('roboto', 24)
 
 # World/Environment Info
-grid_c = int(80 * width / 1600 * height / 1600) # number of food grids across
+grid_c = int(160 * width / 1600 * height / 1600) # number of food grids across
 food_gen_c = int(200 * width / 1600 * height / 1600)
 max_f = 10 # maximum number of food units
 food_grid = []
 can_pass = False
+time_d = 0
+
+zoom_f = 1
+scroll_x = 0
+scroll_y = 0
 
 # Agent Info
 num_agents = 100
@@ -33,10 +40,48 @@ class Agent:
         self.money = random.uniform(0,1)
         self.age = 0
         self.color = (int(self.food * 255), int(self.food * 255), int(self.food * 255))
-        # 0: Red Intensity, 1: Green Intensity, 2: Blue Intensity, 3: x-move intensity, 4: y-move intensity
-        self.genes = [random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)]
+        # 0: Red Intensity, 1: Green Intensity, 2: Blue Intensity, 3+: weights
+        self.genes = [random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)]
+        for i in range(100):
+            self.genes.append(random.uniform(0, 1))
+        self.nodes = []
+        for i in range(100):
+            self.nodes.append(0)
+        self.memory = [0, 0, 0]
         self.id = next_agent_id
         next_agent_id += 1
+    
+    def think(self):
+        weight_i = 0
+        self.angle = math.remainder(self.angle)
+        self.nodes[0] = self.angle
+        self.nodes[1] = self.food
+        self.nodes[2] = self.memory[0]
+        self.nodes[3] = self.memory[1]
+        self.nodes[4] = self.memory[2]
+        self.nodes[5] = random.uniform(0, 1)
+        self.nodes[6] = 1
+
+        for j in range(3):
+            self.nodes[j+7] = 0
+            for i in range(7):
+                self.nodes[j+7] += self.nodes[i] * (self.genes[weight_i + 3] - 0.5) * 2 / 7
+                weight_i += 1
+            self.nodes[j+7] = max(self.nodes[j + 7], 0)
+        
+        for j in range(3):
+            self.nodes[j+10] = 0
+            for i in range(3):
+                self.nodes[j+10] += self.nodes[i + 7] * (self.genes[weight_i + 3] - 0.5) * 2 / 3
+                weight_i += 1
+            self.nodes[j+10] = max(self.nodes[j+10], 0)
+        
+        self.memory[0] = max(min(self.nodes[11], 1), 0)
+        self.memory[1] += max(min(self.nodes[12] / 10, 1), 0)
+        self.memory[2] = max(min(self.nodes[13], 1), 0)
+
+        return [self.nodes[j+10], self.memory[0]]
+
       
     def identify(self):
         if random.uniform(0, 1) < 0.000001:
@@ -45,9 +90,13 @@ class Agent:
     def move(self):
         x = self.x
         y = self.y
+
+        outputs = self.think()
+
+        self.angle += min(max(outputs[0], 0), 1) * 2 * math.pi
         
-        x_t = x + 0.4 * math.cos(self.angle)
-        y_t = y + 0.4 * math.sin(self.angle)
+        x_t = x + 5 * outputs[1] * math.cos(self.angle)
+        y_t = y + 5 * outputs[1] * math.sin(self.angle)
 
         if x_t < 0:
             x_t = 0
@@ -65,9 +114,6 @@ class Agent:
         if food_grid_y_i != int(grid_c / 2) or can_pass:
             self.x = x_t
             self.y = y_t
-
-        self.angle += self.genes[3] * math.pi
-        self.angle += self.genes[4] * random.uniform(-2 * math.pi, 2 * math.pi)
         
 
     
@@ -151,7 +197,7 @@ class World:
             agents.append(Agent(x,y))
 
     def generate_food(self):
-        for i in range(food_gen_c):
+        for i in range(int(food_gen_c)):
             x = random.randint(0, grid_c - 1)
             y = random.randint(0, grid_c - 1)
             if food_grid[x][y] < max_f and random.uniform(0, 1) < 1:
@@ -170,6 +216,35 @@ while running:
     keys = pygame.key.get_pressed()
     if keys[pygame.K_t]:
         can_pass = not can_pass
+    if keys[pygame.K_m]:
+        food_gen_c *= 1.1
+    if keys[pygame.K_n]:
+        food_gen_c *= 0.9
+
+    if keys[pygame.K_w]:
+        scroll_y -= 10 * zoom_f
+    if keys[pygame.K_a]:
+        scroll_x -= 10 * zoom_f
+    if keys[pygame.K_s]:
+        scroll_y += 10 * zoom_f
+    if keys[pygame.K_d]:
+        scroll_x += 10 * zoom_f
+    
+    if keys[pygame.K_e]:
+        zoom_f *= 0.99
+    if keys[pygame.K_r]:
+        zoom_f *= 1.01
+    if keys[pygame.K_q]:
+        zoom_f = 1
+        scroll_x = 0
+        scroll_y = 0
+    
+    if keys[pygame.K_z]:
+        time_d *= 0.9
+    if keys[pygame.K_x]:
+        time_d *= 1.1
+        time_d += 0.001
+
 
 
     window.fill((0,0,0))
@@ -178,20 +253,24 @@ while running:
             color = (food_grid[x][y] * 255 / max_f, 0, 0)
             if not can_pass and y == int(grid_c / 2):
                 color = (100, 100 , 100)
-            pS = int(width / grid_c)
-            pygame.draw.rect(window, color, (x * pS, y * pS, pS, pS))
+            pS = width / grid_c * zoom_f
+            x_draw = int(x * pS - scroll_x)
+            y_draw = int(y * pS - scroll_y)
+            pygame.draw.rect(window, color, (x_draw, y_draw, math.ceil(pS), math.ceil(pS)))
     
     for agent in agents:
         agent.identify()
         agent.age += 1
         agent.color = (int(max(min(agent.food * 25.5, 255), 0)), int(max(min(agent.food * 25.5, 255), 0)), int(max(min(agent.food * 25.5, 255), 0)))
         farbe = (int(agent.genes[0] * 255), int(agent.genes[1] * 255), int(agent.genes[2] * 255))
-        pygame.draw.rect(window, farbe, (int(agent.x - 0.5 * agent_size), int(agent.y - 0.5 * agent_size), agent_size, agent_size))
-        start_pos = (int(agent.x), int(agent.y))
-        end_pos = (int(agent.x + 1.5 * agent_size * math.cos(agent.angle)), int(agent.y + 1.5 * agent_size * math.sin(agent.angle)))
+        x = agent.x * zoom_f - scroll_x
+        y = agent.y * zoom_f - scroll_y
+        pygame.draw.rect(window, farbe, (int(x - 0.5 * agent_size), int(y - 0.5 * agent_size), agent_size, agent_size))
+        start_pos = (int(x), int(y))
+        end_pos = (int(x + 1.5 * agent_size * math.cos(agent.angle)), int(y + 1.5 * agent_size * math.sin(agent.angle)))
         pygame.draw.line(window, (255, 255, 255), start_pos, end_pos, width=2)
 
-    text = font.render(f"Population: {len(agents)} ItC: {itC} Can Pass? {can_pass}", True, (255, 255, 255))
+    text = font.render(f"Population: {len(agents)} ItC: {itC} Can Pass? {can_pass} Food Gen: {food_gen_c} Time Delay: {round(time_d, 4)}", True, (255, 255, 255))
     window.blit(text, (10, 10))
 
     pygame.display.flip()
@@ -216,5 +295,6 @@ while running:
         world.add_agents(100)
     
     itC += 1
+    time.sleep(time_d)
 
 pygame.quit()
