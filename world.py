@@ -3,22 +3,21 @@ import math
 import random
 import copy
 
-width, height = 1600, 1600
+width, height = 800, 800
 
 pygame.init()
 window = pygame.display.set_mode((width, height))
 font = pygame.font.SysFont('roboto', 24)
 
 # World/Environment Info
-grid_c = int(80 * width / 1600 * height / 1600) # number of food grids across
-food_gen_c = int(200 * width / 1600 * height / 1600)
+grid_c = 40 # number of food grids across
 max_f = 10 # maximum number of food units
 food_grid = []
 can_pass = False
 
 # Agent Info
 num_agents = 100
-agent_size = 7
+agent_size = 5
 agents = []
 next_agent_id = 0
 itC = 0
@@ -88,42 +87,29 @@ class Agent:
             self.food -= random.uniform(0.0, 0.1)
 
     def reproduce(self):
-        global next_agent_id
         # lil guy to reproduce if it has enough food
         if self.food > 10:
             new_self = copy.deepcopy(self)
             new_self.food = 3
             new_self.mutate()
-            new_self.id = next_agent_id
-            next_agent_id += 1
             self.food -= 5
             agents.append(new_self)
     
     def mutate(self):
         r = random.uniform(0, 1)
-        # color_shift = 1
+        color_shift = 1
         # self.make_gene_valid(i)
-        if r < 0.05:
-            random_mag = random.randint(-7, 0)
+        if r < 0.1:
             for i in range(3, len(self.genes)):
-                self.genes[i] += random.choice([-1, 1]) * random.uniform(0, 1) * 2 ** random_mag
+                self.genes[i] += random.uniform(-1, 1) ** (-1 * random.randint(0, 5))
                 self.make_gene_valid(i)
-        elif r < 0.1:
+        elif r < 0.2:
             i = random.randint(3, len(self.genes) - 1)
-            self.genes[i] += random.choice([-1, 1]) * random.uniform(0, 1) * 2 ** (random.randint(-7, 0))
-            self.make_gene_valid(i)
-        elif r < 0.15:
-            i = random.randint(3, len(self.genes) - 1)
-            self.genes[i] = random.uniform(0, 1)
-        
-        if random.uniform(0,1) < 0.15:
-            i = random.randint(0, 2)
-            self.genes[i] += random.choice([-1, 1]) * random.uniform(0, 1) * 2 ** (-5)
-            self.make_gene_valid(i)
-
-            # mutated_color = self.color[color_shift] + random.randint(-1,1)
-            # mutated_color = max(0, min(255, mutated_color)) 
-            # self.color = self.color[:color_shift] + (mutated_color,), self.color[color_shift + 1]
+            self.genes[i] += random.uniform(-1, 1) ** (-1 * random.randint(0, 5))
+        if random.uniform(0,1) < 0.05:
+            mutated_color = self.color[color_shift] + random.randint(-5,5)
+            mutated_color = max(0, min(255, mutated_color)) 
+            self.color = self.color[:color_shift] + (mutated_color,), self.color[color_shift + 1]
 
         
     def make_gene_valid(self, i):
@@ -151,7 +137,7 @@ class World:
             agents.append(Agent(x,y))
 
     def generate_food(self):
-        for i in range(food_gen_c):
+        for i in range(30):
             x = random.randint(0, grid_c - 1)
             y = random.randint(0, grid_c - 1)
             if food_grid[x][y] < max_f and random.uniform(0, 1) < 1:
@@ -167,6 +153,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     
+
     keys = pygame.key.get_pressed()
     if keys[pygame.K_t]:
         can_pass = not can_pass
@@ -186,15 +173,14 @@ while running:
         agent.age += 1
         agent.color = (int(max(min(agent.food * 25.5, 255), 0)), int(max(min(agent.food * 25.5, 255), 0)), int(max(min(agent.food * 25.5, 255), 0)))
         farbe = (int(agent.genes[0] * 255), int(agent.genes[1] * 255), int(agent.genes[2] * 255))
-        pygame.draw.rect(window, farbe, (int(agent.x - 0.5 * agent_size), int(agent.y - 0.5 * agent_size), agent_size, agent_size))
-        start_pos = (int(agent.x), int(agent.y))
-        end_pos = (int(agent.x + 1.5 * agent_size * math.cos(agent.angle)), int(agent.y + 1.5 * agent_size * math.sin(agent.angle)))
-        pygame.draw.line(window, (255, 255, 255), start_pos, end_pos, width=2)
+        pygame.draw.rect(window, farbe, (int(agent.x), int(agent.y), agent_size, agent_size))
 
     text = font.render(f"Population: {len(agents)} ItC: {itC} Can Pass? {can_pass}", True, (255, 255, 255))
     window.blit(text, (10, 10))
 
     pygame.display.flip()
+
+    world.generate_food()
 
     og_len = len(agents)
     for i, agent in enumerate(reversed(agents)):
@@ -209,8 +195,13 @@ while running:
         agent.move()
         agent.poop()
         agent.reproduce() 
-    
-    world.generate_food()
+
+    # Generate new food (schmeckt!)
+    for i in range(90):
+        x = int(random.randint(0, grid_c - 1))
+        y = random.randint(0, grid_c - 1)
+        if food_grid[x][y] < max_f and random.uniform(0, 1) < 1:
+            food_grid[x][y] += 1
     
     if len(agents) < 100:
         world.add_agents(100)
@@ -218,3 +209,4 @@ while running:
     itC += 1
 
 pygame.quit()
+
