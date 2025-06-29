@@ -23,6 +23,7 @@ class Agent:
 
     def think(self):
         weight_i = 0
+        self.angle = math.remainder(self.angle, 2 * math.pi)
         self.nodes[0] = self.angle
         self.nodes[1] = self.food
         self.nodes[2] = self.memory[0]
@@ -50,7 +51,7 @@ class Agent:
         self.memory[2] = max(min(self.nodes[13], 1), 0)
 
         return [self.nodes[j+10], self.memory[0]]
-
+    
     def identify(self):
         if random.uniform(0, 1) < 0.000001:
             print(f'ID: {self.id} Genes: {self.genes} Age: {self.age}')
