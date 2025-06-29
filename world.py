@@ -2,29 +2,31 @@ import random
 from agent import Agent
 
 class World:
-    def __init__(self):
-        self.width = 600
-        self.height = 600
+    def __init__(self, config):
+        self.config = config
+        self.food_grid = []
+        self.agents = []
+        self.next_agent_id = 0
+        self.initialize_food()
 
     def initialize_food(self):
-        for x in range(grid_c):
-            temp = []
-            for y in range(grid_c):
-                temp.append(random.randint(0, max_f))
-            food_grid.append(temp)
+        self.food_grid = [[random.randint(0, self.config.MAX_FOOD) for _ in range(self.config.GRID_COUNT)]
+                          for _ in range(self.config.GRID_COUNT)]
 
-    def add_agents(self, i):
-        for _ in range(i):
-            x = random.uniform(0, 1) * width
-            y = random.uniform(0, 1) * height
-            agents.append(Agent(x,y))
+    def add_agents(self, num_agents):
+        for _ in range(num_agents):
+            x = random.uniform(0, 1) * self.config.WIDTH
+            y = random.uniform(0, 1) * self.config.HEIGHT
+            agent = Agent(x, y, self.config, self.next_agent_id)
+            self.next_agent_id += 1
+            self.agents.append(agent)
 
     def generate_food(self):
-        for i in range(int(food_gen_c)):
-            x = random.randint(0, grid_c - 1)
-            y = random.randint(0, grid_c - 1)
-            if food_grid[x][y] < max_f and random.uniform(0, 1) < 1:
-                food_grid[x][y] += 1
+        for _ in range(self.config.FOOD_GEN_COUNT):
+            x = random.randint(0, self.config.GRID_COUNT - 1)
+            y = random.randint(0, self.config.GRID_COUNT - 1)
+            if self.food_grid[x][y] < self.config.MAX_FOOD and random.uniform(0, 1) < 1:
+                self.food_grid[x][y] += 1
 
     def update(self, can_pass):
         # Update agents
@@ -56,4 +58,4 @@ class World:
 
         # Generate new food
         self.generate_food()
-
+        

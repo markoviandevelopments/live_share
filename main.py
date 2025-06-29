@@ -5,7 +5,7 @@ from renderer import Renderer
 
 def main():
     config = Config()
-    world = World()
+    world = World(config)
     renderer = Renderer(config)
     world.add_agents(config.INITIAL_AGENT_COUNT)
 
@@ -29,4 +29,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+    
