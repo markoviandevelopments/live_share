@@ -2,6 +2,7 @@ import random
 import math
 import copy
 
+# note
 class Agent:
     def __init__(self, x, y):
         global next_agent_id
