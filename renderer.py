@@ -1,5 +1,6 @@
 import pygame
 import math
+from terrain import TerrainType
 
 class Renderer:
     def __init__(self, config):
@@ -7,18 +8,34 @@ class Renderer:
         pygame.init()
         self.window = pygame.display.set_mode((self.config.WIDTH, self.config.HEIGHT))
         self.font = pygame.font.SysFont(self.config.FONT_NAME, self.config.FONT_SIZE)
+        self.terrain_colors = {
+            TerrainType.DESSERT: (227, 209, 200),
+            TerrainType.FOREST: (21, 68, 6),
+            TerrainType.WATER: (0, 150, 199)
+        }
 
     def render(self, world, can_pass, iteration_count):
         self.window.fill((0, 0, 0))
 
-        # Render food grid
+        # Render terrain grid
         pixel_size = self.config.WIDTH // self.config.GRID_COUNT
         for y in range(self.config.GRID_COUNT):
             for x in range(self.config.GRID_COUNT):
-                color = (world.food_grid[x][y] * 255 // self.config.MAX_FOOD, 0, 0)
-                if not can_pass and y == self.config.GRID_COUNT // 2:
-                    color = (100, 100, 100)
+                terrain = world.terrain_grid[x][y]
+                color = self.terrain_colors[terrain]
                 pygame.draw.rect(self.window, color, (x * pixel_size, y * pixel_size, pixel_size, pixel_size))
+
+        # Render food grid
+        food_surface = pygame.Surface((pixel_size, pixel_size), pygame.SRCALPHA)
+        pixel_size = self.config.WIDTH // self.config.GRID_COUNT
+        for y in range(self.config.GRID_COUNT):
+            for x in range(self.config.GRID_COUNT):
+                food_intensity = world.food_grid[x][y] * 255 // self.config.MAX_FOOD
+                color = (food_intensity, 0, 0, 150) 
+                if not can_pass and y == self.config.GRID_COUNT // 2:
+                    color = (100, 100, 100, 255)
+                food_surface.fill(color)
+                self.window.blit(food_surface, (x * pixel_size, y * pixel_size, pixel_size, pixel_size))
 
         # Render agents
         for agent in world.agents:

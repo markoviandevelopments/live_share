@@ -3,6 +3,7 @@ from config import Config
 from world import World
 from renderer import Renderer
 
+
 def main():
     config = Config()
     world = World(config)
@@ -29,4 +30,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

@@ -1,6 +1,7 @@
 import random
 import math
 import copy
+from terrain import TerrainType
 
 class Agent:
     def __init__(self, x, y, config, agent_id):
@@ -21,7 +22,19 @@ class Agent:
             self.nodes.append(0)
         self.memory = [0, 0, 0]
 
-    def think(self):
+    def think(self, terrain_grid):
+
+        # Determine terrain agent is standing on
+        grid_c = self.config.GRID_COUNT
+        grid_x_i = max(min(math.floor(self.x / self.config.WIDTH * grid_c), grid_c - 1), 0)
+        grid_y_i = max(min(math.floor(self.y / self.config.HEIGHT * grid_c), grid_c - 1), 0)
+        terrain = terrain_grid[grid_x_i][grid_y_i]
+        terrain_input = {
+            TerrainType.DESSERT: 0.0,
+            TerrainType.FOREST: 0.5,
+            TerrainType.WATER: 1.0
+        }[terrain]
+
         weight_i = 0
         self.angle = math.remainder(self.angle, 2 * math.pi)
         self.nodes[0] = self.angle
@@ -30,7 +43,7 @@ class Agent:
         self.nodes[3] = self.memory[1]
         self.nodes[4] = self.memory[2]
         self.nodes[5] = random.uniform(0, 1)
-        self.nodes[6] = 1
+        self.nodes[6] = terrain_input
 
         for j in range(3):
             self.nodes[j+7] = 0
@@ -56,12 +69,12 @@ class Agent:
         if random.uniform(0, 1) < 0.000001:
             print(f'ID: {self.id} Genes: {self.genes} Age: {self.age}')
 
-    def move(self, food_grid, can_pass):
+    def move(self, food_grid, terrain_grid, can_pass):
 
         x = self.x
         y = self.y
 
-        outputs = self.think()
+        outputs = self.think(terrain_grid)
         self.angle = min(max(outputs[0], 0), 1) * 2 * math.pi
 
         x_t = self.x + 2 * outputs[1] * math.cos(self.angle)
@@ -79,8 +92,8 @@ class Agent:
             self.y = y_t
 
 
-        self.angle += self.genes[3] * math.pi
-        self.angle += self.genes[4] * random.uniform(-2 * math.pi, 2 * math.pi)
+        # self.angle += self.genes[3] * math.pi
+        # self.angle += self.genes[4] * random.uniform(-2 * math.pi, 2 * math.pi)
 
     def eat(self, food_grid):
         grid_c = self.config.GRID_COUNT

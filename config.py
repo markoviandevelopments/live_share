@@ -1,7 +1,7 @@
 class Config:
     # Window settings
-    WIDTH = 1600
-    HEIGHT = 1600
+    WIDTH = 800
+    HEIGHT = 800
     FONT_NAME = 'roboto'
     FONT_SIZE = 24
 
@@ -9,6 +9,8 @@ class Config:
     GRID_COUNT = 80
     FOOD_GEN_COUNT = 200
     MAX_FOOD = 10
+    TERRAIN_GEN_COUNT = 400
+    MAX_TERRAIN = 2
 
     # Agent settings
     INITIAL_AGENT_COUNT = 100

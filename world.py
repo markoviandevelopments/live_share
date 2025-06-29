@@ -1,17 +1,23 @@
 import random
 from agent import Agent
+from terrain import TerrainType
+
 
 class World:
     def __init__(self, config):
         self.config = config
         self.food_grid = []
+        self.terrain_grid = []
         self.agents = []
         self.next_agent_id = 0
-        self.initialize_food()
+        self.initialize_grids()
 
-    def initialize_food(self):
+    def initialize_grids(self):
         self.food_grid = [[random.randint(0, self.config.MAX_FOOD) for _ in range(self.config.GRID_COUNT)]
                           for _ in range(self.config.GRID_COUNT)]
+        
+        self.terrain_grid = [[self.generate_terrain() for _ in range(self.config.GRID_COUNT)]
+                    for _ in range(self.config.GRID_COUNT)]
 
     def add_agents(self, num_agents):
         for _ in range(num_agents):
@@ -25,8 +31,25 @@ class World:
         for _ in range(self.config.FOOD_GEN_COUNT):
             x = random.randint(0, self.config.GRID_COUNT - 1)
             y = random.randint(0, self.config.GRID_COUNT - 1)
-            if self.food_grid[x][y] < self.config.MAX_FOOD and random.uniform(0, 1) < 1:
-                self.food_grid[x][y] += 1
+            terrain = self.terrain_grid[x][y]
+            if terrain == TerrainType.FOREST:
+                spawn_chance = 1.0
+            elif terrain == TerrainType.WATER:
+                spawn_chance = 0.5
+            else:
+                spawn_chance = 0.1
+
+            if self.food_grid[x][y] < self.config.MAX_FOOD and random.uniform(0, 1) < spawn_chance:
+                self.food_grid[x][y] += 1 
+
+    def generate_terrain(self):
+        roll = random.uniform(0, 1)
+        if roll < 0.6:
+            return TerrainType.DESSERT
+        elif roll < 0.85:
+            return TerrainType.FOREST
+        else:
+            return TerrainType.WATER
 
     def update(self, can_pass):
         # Update agents
@@ -38,7 +61,7 @@ class World:
                 agents_to_remove.append(agent)
                 continue
             agent.eat(self.food_grid)
-            agent.move(self.food_grid, can_pass)
+            agent.move(self.food_grid, self.terrain_grid, can_pass)
             agent.poop()
             new_agent = agent.reproduce()
             if new_agent:
@@ -58,4 +81,3 @@ class World:
 
         # Generate new food
         self.generate_food()
-        
