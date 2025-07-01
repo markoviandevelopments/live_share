@@ -15,9 +15,18 @@ class World:
     def initialize_grids(self):
         self.food_grid = [[random.randint(0, self.config.MAX_FOOD) for _ in range(self.config.GRID_COUNT)]
                           for _ in range(self.config.GRID_COUNT)]
-        
-        self.terrain_grid = [[self.generate_terrain() for _ in range(self.config.GRID_COUNT)]
-                    for _ in range(self.config.GRID_COUNT)]
+
+        # Generate island centers
+        self.island_centers = []
+        num_islands = random.randint(3, 7)  # Adjust number of islands as needed
+        for _ in range(num_islands):
+            x = random.randint(0, self.config.GRID_COUNT - 1)
+            y = random.randint(0, self.config.GRID_COUNT - 1)
+            self.island_centers.append((x, y))
+
+        # Generate terrain based on distance to island centers
+        self.terrain_grid = [[self.generate_terrain(x, y) for y in range(self.config.GRID_COUNT)]
+                            for x in range(self.config.GRID_COUNT)]
 
     def add_agents(self, num_agents):
         for _ in range(num_agents):
@@ -37,19 +46,39 @@ class World:
             elif terrain == TerrainType.WATER:
                 spawn_chance = 0.5
             else:
-                spawn_chance = 0.1
+                spawn_chance = 0.0
 
             if self.food_grid[x][y] < self.config.MAX_FOOD and random.uniform(0, 1) < spawn_chance:
                 self.food_grid[x][y] += 1 
 
-    def generate_terrain(self):
-        roll = random.uniform(0, 1)
-        if roll < 0.6:
-            return TerrainType.DESSERT
-        elif roll < 0.85:
-            return TerrainType.FOREST
-        else:
-            return TerrainType.WATER
+    def generate_terrain(self, x, y):
+        # Find minimum distance to any island center
+        min_distance = float('inf')
+        for center_x, center_y in self.island_centers:
+            distance = ((x - center_x) ** 2 + (y - center_y) ** 2) ** 0.5
+            min_distance = min(min_distance, distance)
+
+        # Adjust these thresholds to control island size and shape
+        if min_distance < 5:  # Close to center: high chance of land
+            roll = random.uniform(0, 1)
+            if roll < 0.7:
+                return TerrainType.FOREST
+            else:
+                return TerrainType.DESSERT
+        elif min_distance < 8:  # Transition zone: mix of land and water
+            roll = random.uniform(0, 1)
+            if roll < 0.3:
+                return TerrainType.FOREST
+            elif roll < 0.5:
+                return TerrainType.DESSERT
+            else:
+                return TerrainType.WATER
+        else:  # Far from center: mostly water
+            roll = random.uniform(0, 1)
+            if roll < 0.95:
+                return TerrainType.WATER
+            else:
+                return TerrainType.DESSERT
 
     def update(self, can_pass):
         # Update agents

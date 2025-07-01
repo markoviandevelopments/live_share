@@ -24,13 +24,14 @@ class Renderer:
                 terrain = world.terrain_grid[x][y]
                 color = self.terrain_colors[terrain]
                 pygame.draw.rect(self.window, color, (x * pixel_size, y * pixel_size, pixel_size, pixel_size))
-
+        
         # Render food grid
         food_surface = pygame.Surface((pixel_size, pixel_size), pygame.SRCALPHA)
-        pixel_size = self.config.WIDTH // self.config.GRID_COUNT
+        # pixel_size = self.config.WIDTH // self.config.GRID_COUNT
         for y in range(self.config.GRID_COUNT):
             for x in range(self.config.GRID_COUNT):
                 food_intensity = world.food_grid[x][y] * 255 // self.config.MAX_FOOD
+                food_surface = pygame.Surface((pixel_size, pixel_size), pygame.SRCALPHA)
                 color = (food_intensity, 0, 0, 150) 
                 if not can_pass and y == self.config.GRID_COUNT // 2:
                     color = (100, 100, 100, 255)
